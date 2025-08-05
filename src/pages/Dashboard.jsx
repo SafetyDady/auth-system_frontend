@@ -1,5 +1,7 @@
 import React from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth.jsx';
+import { systemAPI } from '../lib/api.js';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card.jsx';
 import { Button } from '../components/ui/button.jsx';
 import { 
@@ -10,22 +12,57 @@ import {
   User,
   Activity,
   TrendingUp,
-  FileText
+  FileText,
+  Loader2
 } from 'lucide-react';
+import { toast } from 'react-toastify';
 
 const Dashboard = () => {
   const { user } = useAuth();
+  const [dashboardData, setDashboardData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+        const data = await systemAPI.getDashboard();
+        setDashboardData(data);
+      } catch (error) {
+        console.error('Failed to fetch dashboard data:', error);
+        toast.error('Failed to load dashboard data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
+        <span className="ml-2 text-gray-600">Loading dashboard...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       {/* Welcome Banner */}
       <div className="bg-gradient-to-r from-purple-500 to-blue-600 rounded-xl p-6 text-white">
         <h1 className="text-2xl font-bold mb-2">
-          ยินดีต้อนรับ {user?.role === 'superadmin' ? 'System Admin' : user?.role}!
+          {dashboardData?.message || `ยินดีต้อนรับ ${user?.username}!`}
         </h1>
         <p className="text-purple-100">
-          ระบบจัดการผู้ใช้งานและระบบรักษาความปลอดภัย
+          Role: {dashboardData?.role || user?.role} | Access Level: {dashboardData?.access_level || 'user'}
         </p>
+        {dashboardData?.permissions && (
+          <p className="text-purple-200 text-sm mt-1">
+            Permissions: {dashboardData.permissions.join(', ')}
+          </p>
+        )}
       </div>
 
       {/* Action Cards */}
