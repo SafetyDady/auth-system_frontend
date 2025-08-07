@@ -2,11 +2,11 @@ import axios from 'axios';
 import Cookies from 'js-cookie';
 import { toast } from 'react-toastify';
 
-// API Configuration - ใช้ direct URL ใน production
+// API Configuration - ใช้ proxy ใน production เพื่อหลีกเลี่ยง CORS
 const getApiBaseURL = () => {
-  // ใน production ใช้ direct URL ไป Railway
+  // ใน production ใช้ proxy ผ่าน /api
   if (import.meta.env.PROD) {
-    return import.meta.env.VITE_API_URL || 'https://web-production-5b6ab.up.railway.app';
+    return '/api';
   }
   // ใน development ใช้ proxy
   return '/api';
@@ -26,7 +26,8 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 10000, // 10 second timeout
+  timeout: 30000, // Increase timeout to 30 seconds
+  withCredentials: false, // Disable credentials for CORS
 });
 
 // Request interceptor to add auth token
@@ -72,8 +73,19 @@ api.interceptors.response.use(
       status: error.response?.status,
       statusText: error.response?.statusText,
       message: error.message,
-      data: error.response?.data
+      data: error.response?.data,
+      code: error.code
     });
+    
+    // Handle CORS and network errors
+    if (!error.response && (error.code === 'NETWORK_ERROR' || error.message.includes('CORS'))) {
+      console.error('🚫 CORS or Network Error detected');
+      toast.error('Connection failed. Please check if the API server is running.');
+      return Promise.reject({
+        message: 'Network connection failed. Please try again later.',
+        type: 'NETWORK_ERROR'
+      });
+    }
     
     if (error.response?.status === 401) {
       // Token expired or invalid
