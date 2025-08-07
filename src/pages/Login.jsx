@@ -4,7 +4,6 @@ import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { useAuth } from '../hooks/useAuth.jsx';
-import AuthDebugger from '../components/AuthDebugger.jsx';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
@@ -30,7 +29,7 @@ const Login = () => {
   const { login, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
 
-  const { register, handleSubmit, formState: { errors, isSubmitting }, setValue, clearErrors } = useForm({
+  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
     resolver: yupResolver(loginSchema)
   });
 
@@ -56,19 +55,6 @@ const Login = () => {
       console.error('Login error:', error);
       toast.error('An unexpected error occurred');
     }
-  };
-
-  // Test accounts info
-  const testAccounts = [
-    { username: 'superadmin', password: 'superadmin123', role: 'Super Admin' },
-    { username: 'admin1', password: 'admin123', role: 'Admin' },
-    { username: 'admin2', password: 'admin123', role: 'Admin' }
-  ];
-
-  const fillTestAccount = (account) => {
-    setValue('username', account.username);
-    setValue('password', account.password);
-    clearErrors();
   };
 
   return (
@@ -161,39 +147,11 @@ const Login = () => {
           </CardContent>
         </Card>
 
-        {/* Test Accounts */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Test Accounts</CardTitle>
-            <CardDescription className="text-xs">
-              Click to fill login form with test credentials
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {testAccounts.map((account, index) => (
-              <Button
-                key={index}
-                variant="outline"
-                size="sm"
-                className="w-full justify-start text-xs"
-                onClick={() => fillTestAccount(account)}
-                type="button"
-              >
-                <User className="mr-2 h-3 w-3" />
-                {account.username} ({account.role})
-              </Button>
-            ))}
-          </CardContent>
-        </Card>
-
         {/* Footer */}
         <div className="text-center text-sm text-gray-600">
           <p>Authentication & User Management System</p>
           <p className="text-xs mt-1">Powered by Manus</p>
         </div>
-        
-        {/* Auth Debugger - Development Tool */}
-        <AuthDebugger />
       </div>
     </div>
   );

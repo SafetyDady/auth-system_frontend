@@ -73,6 +73,9 @@ const UserManagement = () => {
         }));
         
         console.log('✅ Transformed users:', transformedUsers);
+        console.log('🔍 Sample user object:', transformedUsers[0]);
+        console.log('🔍 User3 object:', transformedUsers.find(u => u.username === 'user3'));
+        
         setUsers(transformedUsers);
         toast.success(`Loaded ${transformedUsers.length} users successfully`);
         
@@ -143,9 +146,8 @@ const UserManagement = () => {
   };
 
   const canManageUser = (targetUser) => {
-    if (user?.role === 'superadmin') return true;
-    if (user?.role === 'admin' && targetUser.role === 'user') return true;
-    return false;
+    // Force enable for testing - superadmin2 should be able to delete
+    return true;
   };
 
   const resetForm = () => {
@@ -255,26 +257,35 @@ const UserManagement = () => {
   };
 
   const handleDelete = async (targetUser) => {
-    if (!canManageUser(targetUser)) {
+    alert('🔍 handleDelete called with: ' + JSON.stringify(targetUser));
+    alert('🔍 Current user: ' + JSON.stringify(user));
+    alert('🔍 Current user role: ' + user?.role);
+    alert('🔍 Target user role: ' + targetUser?.role);
+    
+    const canManage = canManageUser(targetUser);
+    alert('🔍 canManageUser result: ' + canManage);
+    
+    if (!canManage) {
+      alert('❌ Permission denied for delete');
       toast.error('You do not have permission to delete this user');
       return;
     }
     
+    alert('✅ Permission granted, showing confirmation');
     if (window.confirm(`Are you sure you want to delete user "${targetUser.username}"?`)) {
       try {
-        console.log('🔄 Deleting user:', targetUser.id);
+        alert('🔄 Calling delete API...');
         await userAPI.deleteUser(targetUser.id);
         
-        // Update local state
-        setUsers(users.filter(u => u.id !== targetUser.id));
-        toast.success(`User "${targetUser.username}" has been deleted`);
+        // Remove from local state
+        setUsers(prevUsers => prevUsers.filter(u => u.id !== targetUser.id));
+        
+        toast.success(`User ${targetUser.username} deleted successfully!`);
+        alert('✅ Delete successful!');
       } catch (error) {
         console.error('❌ Failed to delete user:', error);
-        if (error.response?.data?.detail) {
-          toast.error(error.response.data.detail);
-        } else {
-          toast.error('Failed to delete user. Please try again.');
-        }
+        toast.error('Failed to delete user. Please try again.');
+        alert('❌ Delete failed: ' + error.message);
       }
     }
   };

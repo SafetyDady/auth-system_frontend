@@ -3,7 +3,6 @@ import { ToastContainer } from 'react-toastify';
 import { AuthProvider } from './hooks/useAuth.jsx';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
-import { ConnectionStatus } from './components/ConnectionStatus';
 import { ConnectionVerification } from './components/ConnectionVerification';
 import ErrorBoundary from './components/ErrorBoundary';
 import Login from './pages/Login';
@@ -105,9 +104,6 @@ function App() {
                 </div>
               } />
             </Routes>
-            
-            {/* Connection Status Indicator */}
-            <ConnectionStatus />
             
             {/* Toast Notifications */}
             <ToastContainer
