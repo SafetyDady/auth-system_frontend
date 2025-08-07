@@ -37,9 +37,19 @@ export const isAuthenticated = () => {
 
 export const hasRole = (requiredRole) => {
   const userData = getUserData();
-  if (!userData) return false;
+  if (!userData) {
+    console.log('🔍 hasRole: No user data found');
+    return false;
+  }
   
-  const userRole = userData.role;
+  let userRole = userData.role;
+  console.log('🔍 hasRole check:', { userRole, requiredRole, userData });
+  
+  // Fix for backend that returns username as role (admin1 -> admin)
+  if (userRole === 'admin1' || userRole === 'admin2') {
+    userRole = 'admin';
+    console.log('🔄 Normalized role from', userData.role, 'to', userRole);
+  }
   
   // Role hierarchy: superadmin > admin > user
   const roleHierarchy = {
@@ -51,7 +61,16 @@ export const hasRole = (requiredRole) => {
   const userLevel = roleHierarchy[userRole] || 0;
   const requiredLevel = roleHierarchy[requiredRole] || 0;
   
-  return userLevel >= requiredLevel;
+  const hasAccess = userLevel >= requiredLevel;
+  console.log('🔍 Role check result:', { 
+    originalRole: userData.role,
+    normalizedRole: userRole,
+    userLevel, 
+    requiredLevel, 
+    hasAccess
+  });
+  
+  return hasAccess;
 };
 
 export const canManageUser = (targetUser) => {
@@ -75,14 +94,26 @@ export const canManageUser = (targetUser) => {
 };
 
 export const getRedirectPath = (role) => {
-  switch (role) {
+  // Normalize role first (admin1, admin2 -> admin)
+  let normalizedRole = role;
+  if (role === 'admin1' || role === 'admin2') {
+    normalizedRole = 'admin';
+  }
+  
+  console.log('🔀 Redirect path for role:', { originalRole: role, normalizedRole });
+  
+  switch (normalizedRole) {
     case 'superadmin':
+      console.log('➡️ Redirecting superadmin to /dashboard');
       return '/dashboard';
     case 'admin':
+      console.log('➡️ Redirecting admin to /dashboard');
       return '/dashboard';
     case 'user':
-      return '/profile';
+      console.log('➡️ Redirecting user to /profile');
+      return '/dashboard'; // Changed to /dashboard for now since /profile doesn't exist
     default:
+      console.log('➡️ Unknown role, redirecting to /login');
       return '/login';
   }
 };

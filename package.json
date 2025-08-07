@@ -5,7 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:local": "VITE_API_URL=http://localhost:3000 vite",
+    "dev:railway": "VITE_API_URL=https://web-production-5b6ab.up.railway.app vite",
     "build": "vite build",
+    "build:prod": "NODE_ENV=production vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },

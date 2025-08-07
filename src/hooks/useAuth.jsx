@@ -34,25 +34,33 @@ export const AuthProvider = ({ children }) => {
       const token = getToken();
       const userData = getUserData();
 
+      console.log('🔐 Auth initialization:', { hasToken: !!token, hasUserData: !!userData });
+
       if (token && userData) {
         try {
           // Verify token with backend
+          console.log('🔍 Verifying token with backend...');
           const currentUser = await authAPI.getCurrentUser();
+          console.log('✅ Token valid, user authenticated:', currentUser);
           setUser(currentUser);
           setUserData(currentUser);
           setIsAuthenticated(true);
         } catch (error) {
           // Token invalid, clear auth data
+          console.log('❌ Token invalid, clearing auth data:', error.message);
           clearAuthData();
           setUser(null);
           setIsAuthenticated(false);
+          toast.error('Session expired. Please login again.');
         }
       } else {
+        console.log('❌ No token/userData found, user not authenticated');
         setUser(null);
         setIsAuthenticated(false);
       }
       
       setIsLoading(false);
+      console.log('🏁 Auth initialization complete');
     };
 
     initAuth();

@@ -19,25 +19,27 @@ import { toast } from 'react-toastify';
 
 const Dashboard = () => {
   const { user } = useAuth();
-  const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
+        console.log('🔍 Fetching dashboard data from backend...');
         const data = await systemAPI.getDashboard();
-        setDashboardData(data);
+        console.log('📊 Dashboard data received:', data);
+        // We don't need to store this data anymore since we use role-based rendering
       } catch (error) {
-        console.error('Failed to fetch dashboard data:', error);
-        toast.error('Failed to load dashboard data');
+        console.error('❌ Failed to fetch dashboard data:', error);
+        console.error('Error details:', error.response?.data || error.message);
+        // Just log the error, don't need to store fallback data
       } finally {
         setLoading(false);
       }
     };
 
     fetchDashboardData();
-  }, []);
+  }, [user]);
 
   if (loading) {
     return (
@@ -48,201 +50,200 @@ const Dashboard = () => {
     );
   }
 
-  return (
+  // Different dashboard content based on user role
+  const getDashboardContent = () => {
+    const userRole = user?.role;
+    console.log('🎨 Rendering dashboard for role:', userRole);
+    
+    switch(userRole) {
+      case 'superadmin':
+        return renderSuperAdminDashboard();
+      case 'admin':
+      case 'admin1':
+      case 'admin2':
+        return renderAdminDashboard();
+      default:
+        return renderUserDashboard();
+    }
+  };
+
+  const renderSuperAdminDashboard = () => (
     <div className="space-y-6">
       {/* Welcome Banner */}
       <div className="bg-gradient-to-r from-purple-500 to-blue-600 rounded-xl p-6 text-white">
         <h1 className="text-2xl font-bold mb-2">
-          {dashboardData?.message || `ยินดีต้อนรับ ${user?.username}!`}
+          🔥 SuperAdmin Dashboard - {user?.username}
         </h1>
         <p className="text-purple-100">
-          Role: {dashboardData?.role || user?.role} | Access Level: {dashboardData?.access_level || 'user'}
+          Full system access | Role: {user?.role} | Access Level: Maximum
         </p>
-        {dashboardData?.permissions && (
-          <p className="text-purple-200 text-sm mt-1">
-            Permissions: {dashboardData.permissions.join(', ')}
-          </p>
-        )}
+        <p className="text-purple-200 text-sm mt-1">
+          Permissions: Full Control, User Management, System Settings
+        </p>
       </div>
 
-      {/* Action Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Admin Management Card */}
-        {(user?.role === 'superadmin' || user?.role === 'admin') && (
-          <Card className="bg-gradient-to-br from-orange-400 to-red-500 text-white border-0 shadow-lg hover:shadow-xl transition-shadow">
-            <CardHeader>
-              <div className="flex items-center space-x-2">
-                <Shield className="h-6 w-6" />
-                <CardTitle className="text-white">Admin Management</CardTitle>
-              </div>
-              <CardDescription className="text-orange-100">
-                จัดการผู้ใช้ Admin, เพิ่ม/ลบ Admin และกำหนด Role
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button 
-                className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white border-white border"
-                onClick={() => window.location.href = '/users'}
-              >
-                <Users className="mr-2 h-4 w-4" />
-                จัดการ Admin
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Admin Dashboard Card */}
-        <Card className="bg-gradient-to-br from-blue-500 to-purple-600 text-white border-0 shadow-lg hover:shadow-xl transition-shadow">
+      {/* SuperAdmin Action Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card className="bg-gradient-to-br from-red-500 to-pink-600 text-white border-0 shadow-lg hover:shadow-xl transition-shadow">
           <CardHeader>
             <div className="flex items-center space-x-2">
-              <BarChart3 className="h-6 w-6" />
-              <CardTitle className="text-white">Admin Dashboard</CardTitle>
+              <Shield className="h-6 w-6" />
+              <CardTitle className="text-white">User Management</CardTitle>
             </div>
-            <CardDescription className="text-blue-100">
-              เข้าสู่ Admin Dashboard พร้อม สำหรับจัดการข้อมูลและระบบรักษาความปลอดภัย
+            <CardDescription className="text-red-100">
+              จัดการผู้ใช้ Admin, เพิ่ม/ลบ Admin และกำหนด Role
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Button 
               className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white border-white border"
-              onClick={() => window.location.href = '/analytics'}
-            >
-              <TrendingUp className="mr-2 h-4 w-4" />
-              เข้าสู่ Admin Dashboard
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="bg-white shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-6">
-            <div className="flex items-center space-x-2">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Users className="h-6 w-6 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">ผู้ใช้งาน</p>
-                <p className="text-2xl font-bold text-gray-900">1,247</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-white shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-6">
-            <div className="flex items-center space-x-2">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <Activity className="h-6 w-6 text-green-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">ร้านค้า</p>
-                <p className="text-2xl font-bold text-gray-900">89</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-white shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-6">
-            <div className="flex items-center space-x-2">
-              <div className="p-2 bg-yellow-100 rounded-lg">
-                <FileText className="h-6 w-6 text-yellow-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">สินค้า</p>
-                <p className="text-2xl font-bold text-gray-900">3,456</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-white shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-6">
-            <div className="flex items-center space-x-2">
-              <div className="p-2 bg-red-100 rounded-lg">
-                <TrendingUp className="h-6 w-6 text-red-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">ยอดขาย</p>
-                <p className="text-2xl font-bold text-gray-900">567</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Management Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="bg-white shadow-sm hover:shadow-md transition-shadow">
-          <CardHeader>
-            <div className="flex items-center space-x-2">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Users className="h-6 w-6 text-blue-600" />
-              </div>
-              <CardTitle className="text-gray-900">จัดการผู้ใช้</CardTitle>
-            </div>
-            <CardDescription>
-              จัดการบัญชีผู้ใช้และสิทธิ์การเข้าถึงระบบ
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button 
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white"
               onClick={() => window.location.href = '/users'}
             >
-              เข้าสู่การจัดการผู้ใช้
+              <Users className="mr-2 h-4 w-4" />
+              จัดการผู้ใช้
             </Button>
           </CardContent>
         </Card>
 
-        <Card className="bg-white shadow-sm hover:shadow-md transition-shadow">
+        <Card className="bg-gradient-to-br from-blue-500 to-purple-600 text-white border-0 shadow-lg hover:shadow-xl transition-shadow">
           <CardHeader>
             <div className="flex items-center space-x-2">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <Activity className="h-6 w-6 text-green-600" />
-              </div>
-              <CardTitle className="text-gray-900">อนุมัติร้านค้า</CardTitle>
+              <Settings className="h-6 w-6" />
+              <CardTitle className="text-white">System Settings</CardTitle>
             </div>
-            <CardDescription>
-              อนุมัติและจัดการร้านค้าที่ร้องขอการอนุมัติ
+            <CardDescription className="text-blue-100">
+              ตั้งค่าระบบ, การรักษาความปลอดภัย
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Button 
-              className="w-full bg-green-600 hover:bg-green-700 text-white"
-              onClick={() => window.location.href = '/analytics'}
+              className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white border-white border"
             >
-              เข้าสู่การจัดการร้านค้า
+              <Settings className="mr-2 h-4 w-4" />
+              ตั้งค่าระบบ
             </Button>
           </CardContent>
         </Card>
 
-        <Card className="bg-white shadow-sm hover:shadow-md transition-shadow">
+        <Card className="bg-gradient-to-br from-green-500 to-teal-600 text-white border-0 shadow-lg hover:shadow-xl transition-shadow">
           <CardHeader>
             <div className="flex items-center space-x-2">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <Settings className="h-6 w-6 text-purple-600" />
-              </div>
-              <CardTitle className="text-gray-900">ตั้งค่าระบบ</CardTitle>
+              <BarChart3 className="h-6 w-6" />
+              <CardTitle className="text-white">Analytics</CardTitle>
             </div>
-            <CardDescription>
-              กำหนดค่าและจัดการระบบทั่วไป
+            <CardDescription className="text-green-100">
+              ดูสถิติและรายงานระบบ
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Button 
-              className="w-full bg-purple-600 hover:bg-purple-700 text-white"
-              onClick={() => window.location.href = '/system'}
+              className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white border-white border"
             >
-              เข้าสู่ตั้งค่าระบบ
+              <TrendingUp className="mr-2 h-4 w-4" />
+              ดูสถิติ
             </Button>
           </CardContent>
         </Card>
       </div>
     </div>
   );
+
+  const renderAdminDashboard = () => (
+    <div className="space-y-6">
+      {/* Admin Welcome Banner */}
+      <div className="bg-gradient-to-r from-blue-500 to-teal-600 rounded-xl p-6 text-white">
+        <h1 className="text-2xl font-bold mb-2">
+          👨‍💼 Admin Dashboard - {user?.username}
+        </h1>
+        <p className="text-blue-100">
+          Admin access | Role: {user?.role} | Access Level: Limited
+        </p>
+        <p className="text-blue-200 text-sm mt-1">
+          Permissions: View Users, Basic Management
+        </p>
+      </div>
+
+      {/* Admin Action Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card className="bg-gradient-to-br from-teal-500 to-cyan-600 text-white border-0 shadow-lg hover:shadow-xl transition-shadow">
+          <CardHeader>
+            <div className="flex items-center space-x-2">
+              <Users className="h-6 w-6" />
+              <CardTitle className="text-white">View Users</CardTitle>
+            </div>
+            <CardDescription className="text-teal-100">
+              ดูข้อมูลผู้ใช้ในระบบ (อ่านอย่างเดียว)
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button 
+              className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white border-white border"
+              onClick={() => window.location.href = '/users'}
+            >
+              <Users className="mr-2 h-4 w-4" />
+              ดูรายชื่อผู้ใช้
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-purple-500 to-indigo-600 text-white border-0 shadow-lg hover:shadow-xl transition-shadow">
+          <CardHeader>
+            <div className="flex items-center space-x-2">
+              <User className="h-6 w-6" />
+              <CardTitle className="text-white">My Profile</CardTitle>
+            </div>
+            <CardDescription className="text-purple-100">
+              จัดการโปรไฟล์ส่วนตัว
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button 
+              className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white border-white border"
+            >
+              <User className="mr-2 h-4 w-4" />
+              แก้ไขโปรไฟล์
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+
+  const renderUserDashboard = () => (
+    <div className="space-y-6">
+      {/* User Welcome Banner */}
+      <div className="bg-gradient-to-r from-green-500 to-blue-500 rounded-xl p-6 text-white">
+        <h1 className="text-2xl font-bold mb-2">
+          👤 User Dashboard - {user?.username}
+        </h1>
+        <p className="text-green-100">
+          User access | Role: {user?.role} | Access Level: Basic
+        </p>
+      </div>
+
+      <Card className="bg-gradient-to-br from-blue-500 to-purple-600 text-white border-0 shadow-lg">
+        <CardHeader>
+          <div className="flex items-center space-x-2">
+            <User className="h-6 w-6" />
+            <CardTitle className="text-white">My Profile</CardTitle>
+          </div>
+          <CardDescription className="text-blue-100">
+            จัดการโปรไฟล์ส่วนตัว
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button 
+            className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white border-white border"
+          >
+            <User className="mr-2 h-4 w-4" />
+            แก้ไขโปรไฟล์
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
+
+  return getDashboardContent();
 };
 
 export default Dashboard;

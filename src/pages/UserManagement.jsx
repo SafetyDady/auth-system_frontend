@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth.jsx';
+import { userAPI } from '../lib/api.js';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Label } from '../components/ui/label';
 import { Badge } from '../components/ui/badge';
 import { Alert, AlertDescription } from '../components/ui/alert';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { 
   Users, 
   Plus, 
@@ -16,7 +19,9 @@ import {
   UserCheck, 
   UserX,
   Crown,
-  Settings
+  Settings,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 
@@ -27,69 +32,91 @@ const UserManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedUser, setSelectedUser] = useState(null);
   const [showModal, setShowModal] = useState(false);
-
-  // Mock users data (since we don't have user management API yet)
-  const mockUsers = [
-    {
-      id: 1,
-      username: 'superadmin',
-      email: 'superadmin@example.com',
-      role: 'superadmin',
-      status: 'active',
-      created_at: '2024-01-01T00:00:00Z',
-      last_login: '2024-08-05T10:27:00Z'
-    },
-    {
-      id: 2,
-      username: 'admin1',
-      email: 'admin1@example.com',
-      role: 'admin',
-      status: 'active',
-      created_at: '2024-01-15T00:00:00Z',
-      last_login: '2024-08-04T15:30:00Z'
-    },
-    {
-      id: 3,
-      username: 'admin2',
-      email: 'admin2@example.com',
-      role: 'admin',
-      status: 'active',
-      created_at: '2024-02-01T00:00:00Z',
-      last_login: '2024-08-03T09:15:00Z'
-    },
-    {
-      id: 4,
-      username: 'user1',
-      email: 'user1@example.com',
-      role: 'user',
-      status: 'active',
-      created_at: '2024-03-01T00:00:00Z',
-      last_login: '2024-08-02T14:22:00Z'
-    },
-    {
-      id: 5,
-      username: 'user2',
-      email: 'user2@example.com',
-      role: 'user',
-      status: 'inactive',
-      created_at: '2024-03-15T00:00:00Z',
-      last_login: '2024-07-28T11:45:00Z'
-    }
-  ];
+  const [showPassword, setShowPassword] = useState(false);
+  const [formData, setFormData] = useState({
+    username: '',
+    email: '',
+    password: '',
+    role: 'user'
+  });
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    // Simulate API call
-    setTimeout(() => {
-      setUsers(mockUsers);
+    const fetchUsers = async () => {
+      try {
+        setLoading(true);
+        console.log('🔍 UserManagement: Starting fetch users...');
+        console.log('🔍 Current user:', user);
+        console.log('🔍 User role:', user?.role);
+        
+        // Check if user has permission
+        if (!user || !['superadmin', 'admin', 'admin1', 'admin2'].includes(user.role)) {
+          console.warn('⚠️ User does not have permission to view users');
+          toast.error('You do not have permission to view users');
+          setUsers([]);
+          return;
+        }
+        
+        console.log('🔍 Calling userAPI.getUsers()...');
+        const usersData = await userAPI.getUsers();
+        console.log('✅ Raw users data received:', usersData);
+        
+        if (!Array.isArray(usersData)) {
+          console.error('❌ Users data is not an array:', usersData);
+          throw new Error('Invalid users data format');
+        }
+        
+        // Transform API data to match frontend expectations
+        const transformedUsers = usersData.map(user => ({
+          ...user,
+          status: user.is_active ? 'active' : 'inactive'
+        }));
+        
+        console.log('✅ Transformed users:', transformedUsers);
+        setUsers(transformedUsers);
+        toast.success(`Loaded ${transformedUsers.length} users successfully`);
+        
+      } catch (error) {
+        console.error('❌ UserManagement: Failed to fetch users');
+        console.error('❌ Error type:', error.name);
+        console.error('❌ Error message:', error.message);
+        console.error('❌ Error response:', error.response);
+        console.error('❌ Full error:', error);
+        
+        let errorMessage = 'Failed to load users';
+        if (error.response?.status === 401) {
+          errorMessage = 'Authentication failed. Please login again.';
+        } else if (error.response?.status === 403) {
+          errorMessage = 'Access denied. Insufficient permissions.';
+        } else if (error.response?.status) {
+          errorMessage = `Server error ${error.response.status}: ${error.response.statusText}`;
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+        
+        toast.error(errorMessage);
+        setUsers([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // Only fetch if user is available
+    if (user) {
+      fetchUsers();
+    } else {
+      console.warn('⚠️ No user available, skipping fetch');
       setLoading(false);
-    }, 1000);
-  }, []);
+    }
+  }, [user]);
 
   const getRoleIcon = (role) => {
     switch (role) {
       case 'superadmin':
         return <Crown className="h-4 w-4" />;
       case 'admin':
+      case 'admin1':
+      case 'admin2':
         return <Shield className="h-4 w-4" />;
       default:
         return <Users className="h-4 w-4" />;
@@ -101,6 +128,8 @@ const UserManagement = () => {
       case 'superadmin':
         return 'bg-purple-100 text-purple-800 border-purple-200';
       case 'admin':
+      case 'admin1':
+      case 'admin2':
         return 'bg-blue-100 text-blue-800 border-blue-200';
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200';
@@ -119,6 +148,91 @@ const UserManagement = () => {
     return false;
   };
 
+  const resetForm = () => {
+    setFormData({
+      username: '',
+      email: '',
+      password: '',
+      role: 'user'
+    });
+    setSelectedUser(null);
+    setShowPassword(false);
+  };
+
+  const handleAddUser = async (e) => {
+    e.preventDefault();
+    
+    if (submitting) return;
+
+    // Validation
+    if (!formData.username.trim() || !formData.email.trim() || (!selectedUser && !formData.password.trim())) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
+    if (!selectedUser && formData.password.length < 6) {
+      toast.error('Password must be at least 6 characters long');
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      
+      if (selectedUser) {
+        // Edit existing user
+        console.log('🔄 Updating user:', selectedUser.id, formData);
+        
+        const updateData = {
+          username: formData.username,
+          email: formData.email,
+          role: formData.role
+        };
+        
+        const updatedUser = await userAPI.updateUser(selectedUser.id, updateData);
+        
+        // Update local state
+        setUsers(prevUsers => prevUsers.map(u => 
+          u.id === selectedUser.id 
+            ? { ...updatedUser, status: updatedUser.is_active ? 'active' : 'inactive' }
+            : u
+        ));
+        
+        toast.success(`User ${formData.username} updated successfully!`);
+      } else {
+        // Create new user
+        console.log('🔄 Creating new user:', formData.username);
+
+        // Call backend API to create user
+        const newUser = await userAPI.createUser(formData);
+        
+        toast.success(`User ${formData.username} created successfully!`);
+        
+        // Add to local state
+        setUsers(prevUsers => [...prevUsers, { 
+          ...newUser, 
+          status: newUser.is_active ? 'active' : 'inactive' 
+        }]);
+      }
+      
+      // Reset form and close modal
+      resetForm();
+      setShowModal(false);
+      
+    } catch (error) {
+      console.error('❌ Failed to save user:', error);
+      
+      if (error.response?.data?.detail) {
+        toast.error(error.response.data.detail);
+      } else if (error.response?.status === 409 || error.message.includes('409')) {
+        toast.error('Username or email already exists');
+      } else {
+        toast.error(`Failed to ${selectedUser ? 'update' : 'create'} user. Please try again.`);
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const filteredUsers = users.filter(u =>
     u.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
     u.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -131,32 +245,69 @@ const UserManagement = () => {
       return;
     }
     setSelectedUser(targetUser);
+    setFormData({
+      username: targetUser.username,
+      email: targetUser.email,
+      password: '',
+      role: targetUser.role
+    });
     setShowModal(true);
   };
 
-  const handleDelete = (targetUser) => {
+  const handleDelete = async (targetUser) => {
     if (!canManageUser(targetUser)) {
       toast.error('You do not have permission to delete this user');
       return;
     }
+    
     if (window.confirm(`Are you sure you want to delete user "${targetUser.username}"?`)) {
-      setUsers(users.filter(u => u.id !== targetUser.id));
-      toast.success(`User "${targetUser.username}" has been deleted`);
+      try {
+        console.log('🔄 Deleting user:', targetUser.id);
+        await userAPI.deleteUser(targetUser.id);
+        
+        // Update local state
+        setUsers(users.filter(u => u.id !== targetUser.id));
+        toast.success(`User "${targetUser.username}" has been deleted`);
+      } catch (error) {
+        console.error('❌ Failed to delete user:', error);
+        if (error.response?.data?.detail) {
+          toast.error(error.response.data.detail);
+        } else {
+          toast.error('Failed to delete user. Please try again.');
+        }
+      }
     }
   };
 
-  const handleToggleStatus = (targetUser) => {
+  const handleToggleStatus = async (targetUser) => {
     if (!canManageUser(targetUser)) {
       toast.error('You do not have permission to modify this user');
       return;
     }
-    const newStatus = targetUser.status === 'active' ? 'inactive' : 'active';
-    setUsers(users.map(u => 
-      u.id === targetUser.id 
-        ? { ...u, status: newStatus }
-        : u
-    ));
-    toast.success(`User "${targetUser.username}" status changed to ${newStatus}`);
+    
+    try {
+      const newIsActive = targetUser.status !== 'active';
+      console.log('🔄 Toggling user status:', targetUser.id, newIsActive);
+      
+      const updatedUser = await userAPI.toggleUserStatus(targetUser.id, newIsActive);
+      
+      // Update local state with backend response
+      const newStatus = updatedUser.is_active ? 'active' : 'inactive';
+      setUsers(users.map(u => 
+        u.id === targetUser.id 
+          ? { ...u, ...updatedUser, status: newStatus }
+          : u
+      ));
+      
+      toast.success(`User "${targetUser.username}" status changed to ${newStatus}`);
+    } catch (error) {
+      console.error('❌ Failed to toggle user status:', error);
+      if (error.response?.data?.detail) {
+        toast.error(error.response.data.detail);
+      } else {
+        toast.error('Failed to update user status. Please try again.');
+      }
+    }
   };
 
   const formatDate = (dateString) => {
@@ -186,7 +337,10 @@ const UserManagement = () => {
           <p className="text-gray-600 mt-1">Manage system users and their permissions</p>
         </div>
         <Button 
-          onClick={() => setShowModal(true)}
+          onClick={() => {
+            resetForm();
+            setShowModal(true);
+          }}
           className="flex items-center gap-2"
           disabled={user?.role === 'user'}
         >
@@ -270,27 +424,30 @@ const UserManagement = () => {
                           size="sm"
                           onClick={() => handleEdit(targetUser)}
                           disabled={!canManageUser(targetUser)}
-                          className="h-8 w-8 p-0"
+                          className="h-10 w-10 p-0"
+                          title="Edit User"
                         >
-                          <Edit className="h-3 w-3" />
+                          <Edit className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => handleToggleStatus(targetUser)}
                           disabled={!canManageUser(targetUser)}
-                          className="h-8 w-8 p-0"
+                          className="h-10 w-10 p-0"
+                          title="Toggle Status"
                         >
-                          <Settings className="h-3 w-3" />
+                          <Settings className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => handleDelete(targetUser)}
                           disabled={!canManageUser(targetUser)}
-                          className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                          className="h-10 w-10 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                          title="Delete User"
                         >
-                          <Trash2 className="h-3 w-3" />
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </td>
@@ -317,6 +474,139 @@ const UserManagement = () => {
           {' '}Superadmin can manage everyone • Admin can manage regular users • Users have view-only access
         </AlertDescription>
       </Alert>
+
+      {/* Add/Edit User Modal */}
+      <Dialog open={showModal} onOpenChange={(open) => {
+        setShowModal(open);
+        if (!open) {
+          resetForm();
+        }
+      }}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {selectedUser ? <Edit className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
+              {selectedUser ? 'Edit User' : 'Add New User'}
+            </DialogTitle>
+          </DialogHeader>
+
+          <form onSubmit={handleAddUser} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Username */}
+              <div className="space-y-2">
+                <Label htmlFor="username">Username *</Label>
+                <Input
+                  id="username"
+                  type="text"
+                  placeholder="Enter username"
+                  value={formData.username}
+                  onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
+                  disabled={!!selectedUser} // Disable editing username for existing users
+                  required
+                />
+              </div>
+
+              {/* Email */}
+              <div className="space-y-2">
+                <Label htmlFor="email">Email *</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="Enter email address"
+                  value={formData.email}
+                  onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                  required
+                />
+              </div>
+
+              {/* Role */}
+              <div className="space-y-2">
+                <Label htmlFor="role">Role *</Label>
+                <Select 
+                  value={formData.role} 
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, role: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="user">User</SelectItem>
+                    {user?.role === 'superadmin' && (
+                      <>
+                        <SelectItem value="admin">Admin</SelectItem>
+                        <SelectItem value="superadmin">SuperAdmin</SelectItem>
+                      </>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Password */}
+              <div className="space-y-2">
+                <Label htmlFor="password">
+                  Password {selectedUser ? '(leave blank to keep current)' : '*'}
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder={selectedUser ? 'Enter new password' : 'Enter password'}
+                    value={formData.password}
+                    onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+                    required={!selectedUser}
+                    minLength={6}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+                {!selectedUser && (
+                  <p className="text-sm text-gray-500">Minimum 6 characters</p>
+                )}
+              </div>
+            </div>
+
+            {/* Submit buttons */}
+            <div className="flex justify-end gap-3 pt-4 border-t">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowModal(false)}
+                disabled={submitting}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={submitting}
+                className="min-w-[100px]"
+              >
+                {submitting ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    {selectedUser ? 'Updating...' : 'Creating...'}
+                  </div>
+                ) : (
+                  <>
+                    {selectedUser ? <Edit className="w-4 h-4 mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
+                    {selectedUser ? 'Update User' : 'Create User'}
+                  </>
+                )}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

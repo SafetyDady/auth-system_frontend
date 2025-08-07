@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { useAuth } from '../hooks/useAuth.jsx';
+import AuthDebugger from '../components/AuthDebugger.jsx';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
@@ -190,6 +191,9 @@ const Login = () => {
           <p>Authentication & User Management System</p>
           <p className="text-xs mt-1">Powered by Manus</p>
         </div>
+        
+        {/* Auth Debugger - Development Tool */}
+        <AuthDebugger />
       </div>
     </div>
   );
