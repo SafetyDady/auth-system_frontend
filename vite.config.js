@@ -4,37 +4,51 @@ import tailwindcss from '@tailwindcss/vite'
 import path from 'path'
 
 // https://vite.dev/config/
-export default defineConfig({
-  plugins: [react(),tailwindcss()],
-  resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
-    },
-  },
-  server: {
-    port: 5174,
-    strictPort: true,
-    proxy: {
-      '/api': {
-        target: 'https://web-production-5b6ab.up.railway.app',
-        changeOrigin: true,
-        secure: true,
-        rewrite: (path) => path.replace(/^\/api/, ''),
-        configure: (proxy, _options) => {
-          proxy.on('error', (err, _req, _res) => {
-            console.log('proxy error', err);
-          });
-          proxy.on('proxyReq', (proxyReq, req, _res) => {
-            console.log('Sending Request to the Target:', req.method, req.url);
-          });
-          proxy.on('proxyRes', (proxyRes, req, _res) => {
-            console.log('Received Response from the Target:', proxyRes.statusCode, req.url);
-          });
-        },
+export default defineConfig(({ command, mode }) => {
+  const isProduction = mode === 'production'
+  
+  return {
+    plugins: [
+      react(),
+      tailwindcss()
+    ],
+    resolve: {
+      alias: {
+        "@": path.resolve(__dirname, "./src"),
       },
     },
-  },
-  define: {
-    __DEV__: JSON.stringify(process.env.NODE_ENV === 'development'),
-  },
+    build: {
+      outDir: 'dist',
+      assetsDir: 'assets',
+      sourcemap: !isProduction,
+      minify: isProduction ? 'esbuild' : false,
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            'react-vendor': ['react', 'react-dom'],
+            'router': ['react-router-dom'],
+            'ui': ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-label'],
+            'forms': ['react-hook-form', '@hookform/resolvers', 'yup'],
+            'utils': ['axios', 'clsx', 'tailwind-merge']
+          }
+        }
+      },
+      chunkSizeWarningLimit: 1000
+    },
+    server: {
+      port: 5174,
+      strictPort: true,
+      proxy: command === 'serve' ? {
+        '/api': {
+          target: 'https://web-production-5b6ab.up.railway.app',
+          changeOrigin: true,
+          secure: true,
+          rewrite: (path) => path.replace(/^\/api/, ''),
+        },
+      } : undefined,
+    },
+    define: {
+      __DEV__: JSON.stringify(!isProduction),
+    },
+  }
 })

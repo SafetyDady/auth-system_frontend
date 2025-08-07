@@ -175,12 +175,15 @@ VITE_ENV=production
 - **Auto-deployment**: Git push triggers deployment
 - **Health Monitoring**: `/health` endpoint
 
-### Frontend (Manus Space)
-- **Platform**: Manus Space CDN
-- **Framework**: React + Vite
+### Frontend (Manus Space + Vercel Ready)
+- **Platform**: Manus Space CDN / Vercel (Ready)
+- **Framework**: React + Vite  
 - **Build**: Static files optimized for production
 - **CDN**: Global content delivery network
 - **SSL**: HTTPS enabled by default
+- **Node.js**: Version 20 (defined in .nvmrc)
+- **Dependencies**: Resolved with --legacy-peer-deps
+- **Bundle Size**: ~173 KB (gzipped), production optimized
 
 ## 📈 Success Metrics
 
