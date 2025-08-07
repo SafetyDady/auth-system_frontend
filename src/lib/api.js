@@ -2,14 +2,9 @@ import axios from 'axios';
 import Cookies from 'js-cookie';
 import { toast } from 'react-toastify';
 
-// API Configuration - ใช้ proxy ใน production เพื่อหลีกเลี่ยง CORS
+// API Configuration - Back to direct URL พร้อม advanced CORS handling
 const getApiBaseURL = () => {
-  // ใน production ใช้ proxy ผ่าน /api
-  if (import.meta.env.PROD) {
-    return '/api';
-  }
-  // ใน development ใช้ proxy
-  return '/api';
+  return 'https://web-production-5b6ab.up.railway.app';
 };
 
 const API_BASE_URL = getApiBaseURL();
@@ -28,6 +23,8 @@ const api = axios.create({
   },
   timeout: 30000, // Increase timeout to 30 seconds
   withCredentials: false, // Disable credentials for CORS
+  // Add mode for better CORS handling
+  mode: 'cors',
 });
 
 // Request interceptor to add auth token
