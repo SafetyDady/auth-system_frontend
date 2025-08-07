@@ -2,9 +2,14 @@ import axios from 'axios';
 import Cookies from 'js-cookie';
 import { toast } from 'react-toastify';
 
-// API Configuration - Back to direct URL พร้อม advanced CORS handling
+// API Configuration - ใช้ /api proxy ใน production, direct ใน development
 const getApiBaseURL = () => {
-  return 'https://web-production-5b6ab.up.railway.app';
+  // ใน production ใช้ /api proxy ผ่าน Vercel rewrites
+  if (import.meta.env.PROD) {
+    return '/api';
+  }
+  // ใน development ใช้ proxy หรือ direct URL
+  return import.meta.env.VITE_API_URL || '/api';
 };
 
 const API_BASE_URL = getApiBaseURL();
@@ -21,10 +26,8 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 30000, // Increase timeout to 30 seconds
+  timeout: 30000, // 30 seconds timeout
   withCredentials: false, // Disable credentials for CORS
-  // Add mode for better CORS handling
-  mode: 'cors',
 });
 
 // Request interceptor to add auth token
