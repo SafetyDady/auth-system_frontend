@@ -2,8 +2,13 @@
   "framework": "vite",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "installCommand": "npm install",
+  "installCommand": "npm install --legacy-peer-deps",
   "devCommand": "npm run dev",
+  "functions": {
+    "app/api/**/*.js": {
+      "runtime": "nodejs20.x"
+    }
+  },
   "rewrites": [
     {
       "source": "/(.*)",
@@ -13,7 +18,8 @@
   "env": {
     "VITE_API_URL": "https://web-production-5b6ab.up.railway.app",
     "VITE_ENV": "production",
-    "VITE_RAILWAY_API_URL": "https://web-production-5b6ab.up.railway.app"
+    "VITE_RAILWAY_API_URL": "https://web-production-5b6ab.up.railway.app",
+    "NODE_VERSION": "20"
   }
 }
 
