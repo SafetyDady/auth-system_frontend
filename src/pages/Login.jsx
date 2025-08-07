@@ -151,6 +151,16 @@ const Login = () => {
               >
                 {isSubmitting ? 'Signing In...' : 'Sign In'}
               </Button>
+
+              {/* Forgot Password Link */}
+              <div className="text-center">
+                <Link 
+                  to="/forgot-password" 
+                  className="text-sm text-purple-600 hover:text-purple-700 transition-colors duration-200"
+                >
+                  Forgot your password?
+                </Link>
+              </div>
             </form>
           </CardContent>
         </Card>
