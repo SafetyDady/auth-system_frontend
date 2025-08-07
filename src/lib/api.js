@@ -2,9 +2,13 @@ import axios from 'axios';
 import Cookies from 'js-cookie';
 import { toast } from 'react-toastify';
 
-// API Configuration - ใช้ proxy เสมอใน development
+// API Configuration - ใช้ direct URL ใน production
 const getApiBaseURL = () => {
-  // ใช้ proxy เสมอเพื่อหลีกเลี่ยง CORS
+  // ใน production ใช้ direct URL ไป Railway
+  if (import.meta.env.PROD) {
+    return import.meta.env.VITE_API_URL || 'https://web-production-5b6ab.up.railway.app';
+  }
+  // ใน development ใช้ proxy
   return '/api';
 };
 
@@ -299,4 +303,7 @@ export const connectionCheck = {
 };
 
 export default api;
+
+// Named export for compatibility
+export { api };
 
