@@ -112,6 +112,43 @@ export const authAPI = {
     Cookies.remove('auth_token');
     Cookies.remove('user_data');
     window.location.href = '/login';
+  },
+
+  // Forgot Password functionality
+  forgotPassword: async (email) => {
+    try {
+      const response = await api.post('/auth/forgot-password', { email });
+      console.log('✅ Forgot password request sent:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Forgot password error:', error);
+      throw error;
+    }
+  },
+
+  verifyResetToken: async (token) => {
+    try {
+      const response = await api.get(`/auth/verify-reset-token?token=${token}`);
+      console.log('✅ Reset token verified:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Token verification error:', error);
+      throw error;
+    }
+  },
+
+  resetPassword: async (token, newPassword) => {
+    try {
+      const response = await api.post('/auth/reset-password', { 
+        token, 
+        new_password: newPassword 
+      });
+      console.log('✅ Password reset successful:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Password reset error:', error);
+      throw error;
+    }
   }
 };
 
@@ -171,13 +208,26 @@ export const userAPI = {
   },
 
   createUser: async (userData) => {
-    console.log('🔍 Creating user:', userData);
+    console.log('🔍 Creating user with data:', userData);
     try {
-      const response = await api.post('/users/', userData);
+      // Ensure required fields are present
+      const cleanUserData = {
+        username: userData.username?.trim(),
+        email: userData.email?.trim()?.toLowerCase(),
+        password: userData.password,
+        role: userData.role || 'user',
+        is_active: userData.is_active !== undefined ? userData.is_active : true
+      };
+      
+      console.log('🔍 Clean user data:', cleanUserData);
+      
+      const response = await api.post('/users/', cleanUserData);
       console.log('✅ Create user success:', response.data);
       return response.data;
     } catch (error) {
       console.error('❌ Create user error:', error);
+      console.error('❌ Error response:', error.response?.data);
+      console.error('❌ Error status:', error.response?.status);
       throw error;
     }
   },

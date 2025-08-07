@@ -6,6 +6,8 @@ import Layout from './components/Layout';
 import { ConnectionVerification } from './components/ConnectionVerification';
 import ErrorBoundary from './components/ErrorBoundary';
 import Login from './pages/Login';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import Dashboard from './pages/Dashboard';
 import UserManagement from './pages/UserManagement';
 import 'react-toastify/dist/ReactToastify.css';
@@ -20,6 +22,8 @@ function App() {
             <Routes>
               {/* Public Routes */}
               <Route path="/login" element={<Login />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/verify-connection" element={<ConnectionVerification />} />
               
               {/* Protected Routes - Dashboard accessible to admin and above */}

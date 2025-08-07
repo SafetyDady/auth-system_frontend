@@ -147,6 +147,7 @@ const UserManagement = () => {
 
   const canManageUser = (targetUser) => {
     // Force enable for testing - superadmin2 should be able to delete
+    console.log('🔍 canManageUser called for:', targetUser?.username, 'current user:', user?.role);
     return true;
   };
 
@@ -177,6 +178,13 @@ const UserManagement = () => {
       return;
     }
 
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
+
     try {
       setSubmitting(true);
       
@@ -185,10 +193,15 @@ const UserManagement = () => {
         console.log('🔄 Updating user:', selectedUser.id, formData);
         
         const updateData = {
-          username: formData.username,
-          email: formData.email,
+          username: formData.username.trim(),
+          email: formData.email.trim().toLowerCase(),
           role: formData.role
         };
+        
+        // Only include password if it's provided
+        if (formData.password.trim()) {
+          updateData.password = formData.password;
+        }
         
         const updatedUser = await userAPI.updateUser(selectedUser.id, updateData);
         
@@ -204,8 +217,18 @@ const UserManagement = () => {
         // Create new user
         console.log('🔄 Creating new user:', formData.username);
 
+        const createData = {
+          username: formData.username.trim(),
+          email: formData.email.trim().toLowerCase(),
+          password: formData.password,
+          role: formData.role,
+          is_active: true  // Default to active
+        };
+
+        console.log('🔄 Sending create data:', createData);
+
         // Call backend API to create user
-        const newUser = await userAPI.createUser(formData);
+        const newUser = await userAPI.createUser(createData);
         
         toast.success(`User ${formData.username} created successfully!`);
         
@@ -222,14 +245,30 @@ const UserManagement = () => {
       
     } catch (error) {
       console.error('❌ Failed to save user:', error);
+      console.error('❌ Error response data:', error.response?.data);
+      console.error('❌ Error status:', error.response?.status);
+      
+      let errorMessage = `Failed to ${selectedUser ? 'update' : 'create'} user.`;
       
       if (error.response?.data?.detail) {
-        toast.error(error.response.data.detail);
-      } else if (error.response?.status === 409 || error.message.includes('409')) {
-        toast.error('Username or email already exists');
-      } else {
-        toast.error(`Failed to ${selectedUser ? 'update' : 'create'} user. Please try again.`);
+        if (Array.isArray(error.response.data.detail)) {
+          // Handle validation errors array
+          const errors = error.response.data.detail.map(err => 
+            typeof err === 'string' ? err : err.msg || err.message || 'Invalid field'
+          ).join(', ');
+          errorMessage = `Validation error: ${errors}`;
+        } else {
+          errorMessage = error.response.data.detail;
+        }
+      } else if (error.response?.status === 422) {
+        errorMessage = 'Invalid data provided. Please check all fields.';
+      } else if (error.response?.status === 409) {
+        errorMessage = 'Username or email already exists';
+      } else if (error.message) {
+        errorMessage = error.message;
       }
+      
+      toast.error(errorMessage);
     } finally {
       setSubmitting(false);
     }
@@ -257,35 +296,24 @@ const UserManagement = () => {
   };
 
   const handleDelete = async (targetUser) => {
-    alert('🔍 handleDelete called with: ' + JSON.stringify(targetUser));
-    alert('🔍 Current user: ' + JSON.stringify(user));
-    alert('🔍 Current user role: ' + user?.role);
-    alert('🔍 Target user role: ' + targetUser?.role);
-    
     const canManage = canManageUser(targetUser);
-    alert('🔍 canManageUser result: ' + canManage);
     
     if (!canManage) {
-      alert('❌ Permission denied for delete');
       toast.error('You do not have permission to delete this user');
       return;
     }
     
-    alert('✅ Permission granted, showing confirmation');
     if (window.confirm(`Are you sure you want to delete user "${targetUser.username}"?`)) {
       try {
-        alert('🔄 Calling delete API...');
         await userAPI.deleteUser(targetUser.id);
         
         // Remove from local state
         setUsers(prevUsers => prevUsers.filter(u => u.id !== targetUser.id));
         
         toast.success(`User ${targetUser.username} deleted successfully!`);
-        alert('✅ Delete successful!');
       } catch (error) {
         console.error('❌ Failed to delete user:', error);
         toast.error('Failed to delete user. Please try again.');
-        alert('❌ Delete failed: ' + error.message);
       }
     }
   };
@@ -454,7 +482,6 @@ const UserManagement = () => {
                           variant="outline"
                           size="sm"
                           onClick={() => handleDelete(targetUser)}
-                          disabled={!canManageUser(targetUser)}
                           className="h-10 w-10 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
                           title="Delete User"
                         >
