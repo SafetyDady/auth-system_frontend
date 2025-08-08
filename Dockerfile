@@ -16,8 +16,8 @@ COPY . .
 # Build the application
 RUN npm run build
 
-# Copy server.js to dist directory for proxy
-RUN cp server.js dist/
+# Copy server.js to working directory (not dist)
+COPY server.js ./
 
 # Install only production dependencies for runtime (use install, not ci)
 RUN npm install --only=production --legacy-peer-deps && npm cache clean --force
@@ -25,5 +25,5 @@ RUN npm install --only=production --legacy-peer-deps && npm cache clean --force
 # Expose port
 EXPOSE 3000
 
-# Start the proxy server instead of serve
-CMD ["npm", "start"]
+# Start the Express proxy server explicitly
+CMD ["node", "server.js"]
