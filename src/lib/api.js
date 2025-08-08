@@ -98,7 +98,16 @@ api.interceptors.response.use(
     } else if (error.response?.status === 429) {
       toast.error('Too many requests. Please try again later.');
     } else if (error.response?.status >= 500) {
-      toast.error('Server error. Please try again later.');
+      // Backend JSON serialization error หรือ server errors อื่นๆ
+      console.error('🔥 Backend Server Error:', error.response?.data);
+      toast.error('Backend server error. The development team has been notified.');
+    } else if (error.response?.status === 422) {
+      // Validation error - อาจมีปัญหากับ JSON serialization
+      console.error('📝 Validation Error:', error.response?.data);
+      const errorMsg = typeof error.response?.data === 'string' 
+        ? error.response.data 
+        : 'Please check your input data.';
+      toast.error(`Validation Error: ${errorMsg}`);
     }
     return Promise.reject(error);
   }
