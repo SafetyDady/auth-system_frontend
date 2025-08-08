@@ -2,14 +2,16 @@ import axios from 'axios';
 import Cookies from 'js-cookie';
 import { toast } from 'react-toastify';
 
-// API Configuration - สำหรับ Railway deployment
+// API Configuration - แก้ปัญหา CORS ใน Railway
 const getApiBaseURL = () => {
-  // ใน Railway สามารถใช้ direct URL หรือ internal service communication
-  if (import.meta.env.PROD) {
-    return import.meta.env.VITE_API_URL || 'https://web-production-5b6ab.up.railway.app';
+  // Railway Proxy Mode - Use relative URLs to leverage proxy
+  if (window.location.hostname.includes('railway.app') || 
+      process.env.NODE_ENV === 'production') {
+    return '/api'; // Uses Railway proxy at /api/*
   }
-  // ใน development
-  return import.meta.env.VITE_API_URL || '/api';
+  
+  // Development mode
+  return import.meta.env.VITE_API_URL || 'http://localhost:3000';
 };
 
 const API_BASE_URL = getApiBaseURL();
