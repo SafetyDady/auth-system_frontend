@@ -14,11 +14,13 @@ const getApiBaseURL = () => {
 
 const API_BASE_URL = getApiBaseURL();
 
-console.log('🔧 API Configuration Debug:');
-console.log('- API Base URL:', API_BASE_URL);
-console.log('- Environment:', import.meta.env.VITE_ENV || 'development');
-console.log('- Dev mode:', import.meta.env.DEV);
-console.log('- VITE_API_URL:', import.meta.env.VITE_API_URL);
+// Minimal logging in production
+if (import.meta.env.DEV) {
+  console.log('🔧 API Configuration:', {
+    baseURL: API_BASE_URL,
+    env: import.meta.env.VITE_ENV || 'development'
+  });
+}
 
 // Create axios instance
 const api = axios.create({
@@ -34,20 +36,20 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     const token = Cookies.get('auth_token');
-    console.log('🔍 API Request Details:', {
-      url: config.url,
-      baseURL: config.baseURL,
-      method: config.method?.toUpperCase(),
-      fullURL: `${config.baseURL}${config.url}`,
-      hasToken: !!token,
-      tokenPreview: token ? `${token.substring(0, 20)}...` : 'NO TOKEN'
-    });
+    
+    // Minimal logging in development only
+    if (import.meta.env.DEV) {
+      console.log('🔍 API Request:', {
+        method: config.method?.toUpperCase(),
+        url: config.url,
+        hasToken: !!token
+      });
+    }
     
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
-    } else {
-      console.warn('⚠️ No auth token found in cookies!');
     }
+    return config;
     return config;
   },
   (error) => {
@@ -59,23 +61,25 @@ api.interceptors.request.use(
 // Response interceptor for error handling
 api.interceptors.response.use(
   (response) => {
-    console.log('✅ API Response:', {
-      url: response.config.url,
-      status: response.status,
-      statusText: response.statusText,
-      hasData: !!response.data
-    });
+    // Minimal success logging in development only
+    if (import.meta.env.DEV) {
+      console.log('✅ API Success:', response.config.url, response.status);
+    }
     return response;
   },
   (error) => {
-    console.error('❌ API Response Error:', {
-      url: error.config?.url,
-      status: error.response?.status,
-      statusText: error.response?.statusText,
-      message: error.message,
-      data: error.response?.data,
-      code: error.code
-    });
+    // Always log errors but less verbose in production
+    const logLevel = import.meta.env.DEV ? 'detailed' : 'minimal';
+    
+    if (logLevel === 'detailed') {
+      console.error('❌ API Error:', {
+        url: error.config?.url,
+        status: error.response?.status,
+        message: error.message
+      });
+    } else {
+      console.error('❌ API Error:', error.response?.status, error.config?.url);
+    }
     
     // Handle CORS and network errors
     if (!error.response && (error.code === 'NETWORK_ERROR' || error.message.includes('CORS'))) {
@@ -96,7 +100,15 @@ api.interceptors.response.use(
     } else if (error.response?.status === 403) {
       toast.error('Access denied. You do not have permission.');
     } else if (error.response?.status === 429) {
-      toast.error('Too many requests. Please try again later.');
+      // Rate limiting - wait and retry
+      console.warn('⚠️ Rate limited - cooling down...');
+      toast.warn('Too many requests. Please wait a moment.');
+      // Add exponential backoff for retries
+      return new Promise((resolve, reject) => {
+        setTimeout(() => {
+          reject(error);
+        }, 2000); // Wait 2 seconds before allowing retry
+      });
     } else if (error.response?.status >= 500) {
       // Backend JSON serialization error หรือ server errors อื่นๆ
       console.error('🔥 Backend Server Error:', error.response?.data);
