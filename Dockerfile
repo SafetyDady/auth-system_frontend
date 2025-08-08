@@ -19,8 +19,8 @@ RUN npm run build
 # Copy server.js to dist directory for proxy
 RUN cp server.js dist/
 
-# Install only production dependencies for runtime
-RUN npm ci --only=production --legacy-peer-deps && npm cache clean --force
+# Install only production dependencies for runtime (use install, not ci)
+RUN npm install --only=production --legacy-peer-deps && npm cache clean --force
 
 # Expose port
 EXPOSE 3000
