@@ -1,9 +1,14 @@
-# Railway Proxy Server for Frontend
-# This runs alongside the static frontend and proxies API calls
+// Railway Proxy Server for Frontend
+// This runs alongside the static frontend and proxies API calls
 
-const express = require('express');
-const { createProxyMiddleware } = require('http-proxy-middleware');
-const path = require('path');
+import express from 'express';
+import { createProxyMiddleware } from 'http-proxy-middleware';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// ES Module __dirname equivalent
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -37,4 +42,4 @@ app.listen(PORT, () => {
   console.log(`📡 API proxy: /api/* -> https://web-production-5b6ab.up.railway.app/*`);
 });
 
-module.exports = app;
+export default app;
