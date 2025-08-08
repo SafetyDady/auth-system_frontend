@@ -2,13 +2,13 @@ import axios from 'axios';
 import Cookies from 'js-cookie';
 import { toast } from 'react-toastify';
 
-// API Configuration - ใช้ /api proxy ใน production, direct ใน development
+// API Configuration - สำหรับ Railway deployment
 const getApiBaseURL = () => {
-  // ใน production ใช้ /api proxy ผ่าน Vercel rewrites
+  // ใน Railway สามารถใช้ direct URL หรือ internal service communication
   if (import.meta.env.PROD) {
-    return '/api';
+    return import.meta.env.VITE_API_URL || 'https://web-production-5b6ab.up.railway.app';
   }
-  // ใน development ใช้ proxy หรือ direct URL
+  // ใน development
   return import.meta.env.VITE_API_URL || '/api';
 };
 
